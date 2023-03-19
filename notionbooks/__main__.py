@@ -35,7 +35,7 @@ def is_python_code(block):
     return block["type"] == "code" and block["code"]["language"].lower() == "python"
 
 
-def create_notebook_from_blocks(blocks, title):
+def create_notebook_from_blocks(blocks, title, break_on_heading=False):
     nb = new_notebook()
     total_blocks = len(blocks)
     current_block = 0
@@ -48,6 +48,8 @@ def create_notebook_from_blocks(blocks, title):
         else:
             contents = [block]
             while current_block + 1 < total_blocks and not is_python_code(blocks[current_block + 1]):
+                if break_on_heading and blocks[current_block + 1]["type"].startswith("heading"):
+                    break
                 current_block += 1
                 next_block = blocks[current_block]
                 contents.append(next_block)
@@ -77,27 +79,33 @@ def prepend_item(block):
 def process_blocks(blocks):
     cell_content = []
     for block in blocks:
-        paragraph_content_tags = []
         contents = get_content(block)
         prepend_content = prepend_item(block)
-        for content in contents:
-            if text := content.get("text"):
-                text_content = text["content"]
-                annotations = content["annotations"]
-                annotations = {annotation: annotations.get(annotation, False) for annotation in mapping.keys()}
-                for annotation, tag in mapping.items():
-                    if annotations.get(annotation):
-                        text_content = f"<{tag}>{text_content}</{tag}>"
-                paragraph_content_tags.append(text_content)
-            elif equation := content.get("equation"):
-                paragraph_content_tags.append(f'${equation["expression"]}$')
-        paragraph_content = prepend_content + ("".join(paragraph_content_tags))
+        final_content = process_content(contents)
+        paragraph_content = prepend_content + final_content
         cell_content.append(paragraph_content)
     return "\n\n".join(cell_content)
+
+
+def process_content(contents):
+    paragraph_content_tags = []
+    for content in contents:
+        if text := content.get("text"):
+            text_content = text["content"]
+            annotations = content["annotations"]
+            annotations = {annotation: annotations.get(annotation, False) for annotation in mapping.keys()}
+            for annotation, tag in mapping.items():
+                if annotations.get(annotation):
+                    text_content = f"<{tag}>{text_content}</{tag}>"
+            paragraph_content_tags.append(text_content)
+        elif equation := content.get("equation"):
+            paragraph_content_tags.append(f'${equation["expression"]}$')
+        final_content = "".join(paragraph_content_tags)
+    return final_content
 
 
 for page in pages:
     title = page["properties"]["Name"]["title"][0]["text"]["content"]
     title_slug = slugify(title)
     blocks = notion_client.get_blocks(page["id"])
-    create_notebook_from_blocks(blocks, title)
+    create_notebook_from_blocks(blocks, title, break_on_heading=True)
