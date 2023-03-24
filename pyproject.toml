@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Turn your notion database into Jupyter Notebooks"
 authors = ["Antonio Feregrino <antonio.feregrino@gmail.com>"]
 license = "MIT"
-readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -12,6 +11,11 @@ notion-client = "^2.0.0"
 requests = "^2.28.2"
 python-slugify = "^8.0.1"
 jupyter = "^1.0.0"
+typer = "^0.7.0"
+
+# Add entrypoint for the CLI
+[tool.poetry.scripts]
+nbooks = "notionbooks.__main__:app"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
