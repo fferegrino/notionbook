@@ -2,3 +2,13 @@
 .idea/
 .env
 output/
+
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+profile_default/
+ipython_config.py
+
+__pycache__/
+*.py[cod]
+*$py.class
