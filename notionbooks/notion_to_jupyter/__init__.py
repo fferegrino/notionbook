@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import nbformat
+import papermill as pm
 from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 from slugify import slugify
 
@@ -10,16 +11,30 @@ from notionbooks.notion_to_jupyter.block_utils import get_content, is_python_cod
 def process_database(notion_client, database_id, output_path):
     output_path = Path(output_path)
     output_path.mkdir(exist_ok=True)
-    pages = notion_client.get_pages(database_id, "Status", "Review")
+    pages = notion_client.get_pages(database_id, "Status", "Recording")
     for page in pages:
         title = page["properties"]["Name"]["title"][0]["text"]["content"]
         title_slug = slugify(title)
         output_file = output_path / f"{title_slug}.ipynb"
+        executed_file = output_path / f"{title_slug}-executed.ipynb"
         blocks = notion_client.get_blocks(page["id"])
         notebook = create_notebook_from_blocks(blocks, break_on_heading=True)
         notebook.metadata["notion_metadata"] = page
+        notebook.metadata["kernelspec"] = {
+            "display_name": "Python 3",
+            "language": "python",
+            "name": "python3",
+        }
         with open(output_file, "w") as f:
             nbformat.write(notebook, f)
+
+        print(f"Executing {output_file} to {executed_file}...")
+        pm.execute_notebook(
+            str(output_file),
+            str(executed_file),
+        )
+
+        
 
 
 def create_notebook_from_blocks(blocks, break_on_heading=False):
